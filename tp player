@@ -1,0 +1,215 @@
+-- ✨ Teleport by Ganesha Exploit (Auto Scroll) ✨
+-- ✅ Auto update list + auto refresh
+-- ✅ Search & Random Player
+-- ✅ Roblox Notification
+-- ✅ Auto scroll ke player baru join
+-- ✅ Modern draggable UI
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local StarterGui = game:GetService("StarterGui")
+
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+-- UI Config
+local UI_WIDTH, UI_HEIGHT = 340, 470
+local TELEPORT_COOLDOWN = 1
+local TOGGLE_KEY = Enum.KeyCode.T
+local REFRESH_INTERVAL = 5 -- detik
+
+-- Buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportByGaneshaExploit"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, UI_WIDTH, 0, UI_HEIGHT)
+main.Position = UDim2.new(0, 20, 0, 80)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Parent = screenGui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(50, 50, 55)
+
+-- Title
+local titleBar = Instance.new("Frame", main)
+titleBar.Size = UDim2.new(1, 0, 0, 44)
+titleBar.BackgroundTransparency = 1
+
+local title = Instance.new("TextLabel", titleBar)
+title.Size = UDim2.new(1, -120, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "✨ Teleport by Ganesha Exploit"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.BackgroundTransparency = 1
+
+local toggleButton = Instance.new("TextButton", titleBar)
+toggleButton.Size = UDim2.new(0, 70, 0, 28)
+toggleButton.Position = UDim2.new(1, -80, 0.5, -14)
+toggleButton.Text = "Hide (T)"
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 12
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200,80,80)
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0,8)
+
+-- Search
+local searchBox = Instance.new("TextBox", main)
+searchBox.Size = UDim2.new(1, -20, 0, 32)
+searchBox.Position = UDim2.new(0, 10, 0, 50)
+searchBox.PlaceholderText = "🔍 Search player..."
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 14
+searchBox.TextColor3 = Color3.new(1,1,1)
+searchBox.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0,8)
+
+-- Random Player
+local randomBtn = Instance.new("TextButton", main)
+randomBtn.Size = UDim2.new(1, -20, 0, 32)
+randomBtn.Position = UDim2.new(0, 10, 0, 90)
+randomBtn.Text = "🎲 Random Player"
+randomBtn.Font = Enum.Font.GothamBold
+randomBtn.TextSize = 14
+randomBtn.TextColor3 = Color3.new(1,1,1)
+randomBtn.BackgroundColor3 = Color3.fromRGB(70,130,180)
+Instance.new("UICorner", randomBtn).CornerRadius = UDim.new(0,8)
+
+-- Scroll container
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1, -20, 1, -140)
+scroll.Position = UDim2.new(0, 10, 0, 130)
+scroll.BackgroundTransparency = 1
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarThickness = 6
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 6)
+layout.Changed:Connect(function()
+	scroll.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Teleport
+local lastTeleport = 0
+local function teleportToTarget(target, playerName)
+	if tick() - lastTeleport < TELEPORT_COOLDOWN then return end
+	lastTeleport = tick()
+	if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		localPlayer.Character.HumanoidRootPart.CFrame = target.CFrame + Vector3.new(2,0,2)
+		StarterGui:SetCore("SendNotification", {
+			Title = "✨ Teleport by Ganesha Exploit",
+			Text = "Teleported to " .. playerName .. " ✅",
+			Duration = 3
+		})
+	end
+end
+
+-- Update Player List (selalu rebuild total)
+local function updatePlayerList(autoScroll)
+	for _, child in ipairs(scroll:GetChildren()) do
+		if child:IsA("TextButton") then child:Destroy() end
+	end
+
+	local keyword = searchBox.Text:lower()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer then
+			if keyword == "" or plr.Name:lower():find(keyword) then
+				local btn = Instance.new("TextButton", scroll)
+				btn.Size = UDim2.new(1, -4, 0, 40)
+				btn.Text = "Teleport → " .. plr.Name
+				btn.Font = Enum.Font.GothamBold
+				btn.TextSize = 14
+				btn.TextColor3 = Color3.new(1,1,1)
+				btn.BackgroundColor3 = Color3.fromRGB(70,130,180)
+				Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+
+				btn.MouseButton1Click:Connect(function()
+					if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+						teleportToTarget(plr.Character.HumanoidRootPart, plr.Name)
+					end
+				end)
+			end
+		end
+	end
+
+	-- Auto scroll ke bawah kalau ada player baru
+	if autoScroll then
+		task.wait(0.1) -- kasih waktu UI update
+		scroll.CanvasPosition = Vector2.new(0, math.huge)
+	end
+end
+
+-- Hooks
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	updatePlayerList(false)
+end)
+
+Players.PlayerAdded:Connect(function()
+	updatePlayerList(true) -- scroll ke player baru
+end)
+
+Players.PlayerRemoving:Connect(function()
+	updatePlayerList(false)
+end)
+
+-- Auto refresh tiap X detik
+task.spawn(function()
+	while true do
+		updatePlayerList(false)
+		task.wait(REFRESH_INTERVAL)
+	end
+end)
+
+updatePlayerList(false)
+
+-- Random teleport
+randomBtn.MouseButton1Click:Connect(function()
+	local candidates = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer then
+			table.insert(candidates, plr)
+		end
+	end
+	if #candidates > 0 then
+		local target = candidates[math.random(1, #candidates)]
+		if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+			teleportToTarget(target.Character.HumanoidRootPart, target.Name)
+		end
+	end
+end)
+
+-- Toggle UI
+local uiVisible = true
+local function toggleUI()
+	uiVisible = not uiVisible
+	main.Visible = uiVisible
+	toggleButton.Text = uiVisible and "Hide (T)" or "Show (T)"
+end
+toggleButton.MouseButton1Click:Connect(toggleUI)
+ContextActionService:BindAction("ToggleTeleportUI", function(_, state)
+	if state == Enum.UserInputState.Begin then toggleUI() end
+end, false, TOGGLE_KEY)
+
+-- Dragging
+local dragging, dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
