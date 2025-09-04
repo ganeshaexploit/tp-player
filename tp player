@@ -1,5 +1,4 @@
--- ✨ Teleport & Spectate (Safe + Full + Far Player Support) ✨
--- By Ganesha Exploit Style
+-- ✨ Teleport & Spectate (No Limit Distance + Distance Display) ✨
 -- Client-side only
 
 local Players = game:GetService("Players")
@@ -17,7 +16,6 @@ local UI_WIDTH, UI_HEIGHT = 340, 600
 local TELEPORT_COOLDOWN = 1
 local TOGGLE_KEY = Enum.KeyCode.T
 local REFRESH_INTERVAL = 5
-local TELEPORT_STEP = 50 -- Step distance untuk teleport jauh
 
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -73,9 +71,19 @@ randomBtn.TextColor3 = Color3.new(1,1,1)
 randomBtn.BackgroundColor3 = Color3.fromRGB(70,130,180)
 Instance.new("UICorner", randomBtn).CornerRadius = UDim.new(0,8)
 
+local farthestBtn = Instance.new("TextButton", main)
+farthestBtn.Size = UDim2.new(1,-20,0,32)
+farthestBtn.Position = UDim2.new(0,10,0,100)
+farthestBtn.Text = "📡 Teleport to Farthest Player"
+farthestBtn.Font = Enum.Font.GothamBold
+farthestBtn.TextSize = 14
+farthestBtn.TextColor3 = Color3.new(1,1,1)
+farthestBtn.BackgroundColor3 = Color3.fromRGB(255,165,0)
+Instance.new("UICorner", farthestBtn).CornerRadius = UDim.new(0,8)
+
 local refreshBtn = Instance.new("TextButton", main)
 refreshBtn.Size = UDim2.new(1,-20,0,32)
-refreshBtn.Position = UDim2.new(0,10,0,100)
+refreshBtn.Position = UDim2.new(0,10,0,140)
 refreshBtn.Text = "🔄 Refresh Player List"
 refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.TextSize = 14
@@ -85,8 +93,8 @@ Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,8)
 
 -- Scroll
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1,-20,1,-160)
-scroll.Position = UDim2.new(0,10,0,140)
+scroll.Size = UDim2.new(1,-20,1,-200)
+scroll.Position = UDim2.new(0,10,0,180)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -99,21 +107,12 @@ local function teleportToTarget(plr)
 	if tick() - lastTeleport < TELEPORT_COOLDOWN then return end
 	lastTeleport = tick()
 	pcall(function()
-		-- Wait until target is loaded
 		if not plr or not plr.Character then return end
 		local hrp = plr.Character:WaitForChild("HumanoidRootPart",5)
 		local localHrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp and localHrp then
 			local targetPos = hrp.Position + Vector3.new(2,0,2)
-			local distance = (targetPos - localHrp.Position).Magnitude
-			if distance > TELEPORT_STEP then
-				local direction = (targetPos - localHrp.Position).Unit
-				for i = TELEPORT_STEP, distance, TELEPORT_STEP do
-					localHrp.CFrame = CFrame.new(localHrp.Position + direction * TELEPORT_STEP)
-					task.wait(0.01)
-				end
-			end
-			localHrp.CFrame = CFrame.new(targetPos)
+			localHrp.CFrame = CFrame.new(targetPos) -- langsung teleport tanpa limit distance
 			StarterGui:SetCore("SendNotification",{
 				Title = "Teleport",
 				Text = "Teleported to "..plr.Name,
@@ -152,7 +151,7 @@ local function spectatePlayer(plr)
 	end
 end
 
--- Player Buttons
+-- Player Buttons dengan Distance
 local function createPlayerButton(plr)
 	if scroll:FindFirstChild("Player_"..plr.UserId) then return end
 	local container = Instance.new("Frame", scroll)
@@ -160,10 +159,18 @@ local function createPlayerButton(plr)
 	container.BackgroundTransparency = 1
 	container.Name = "Player_"..plr.UserId
 
+	-- Hitung distance
+	local localHrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local plrHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+	local distance = 0
+	if localHrp and plrHrp then
+		distance = (plrHrp.Position - localHrp.Position).Magnitude
+	end
+
 	local teleportBtn = Instance.new("TextButton", container)
 	teleportBtn.Size = UDim2.new(1,-4,0,36)
 	teleportBtn.Position = UDim2.new(0,0,0,0)
-	teleportBtn.Text = "Teleport → "..plr.Name
+	teleportBtn.Text = string.format("Teleport → %s [%.1f studs]", plr.Name, distance)
 	teleportBtn.Font = Enum.Font.GothamBold
 	teleportBtn.TextSize = 14
 	teleportBtn.TextColor3 = Color3.new(1,1,1)
@@ -237,6 +244,26 @@ randomBtn.MouseButton1Click:Connect(function()
 	if #candidates > 0 then
 		local target = candidates[math.random(1,#candidates)]
 		teleportToTarget(target)
+	end
+end)
+
+-- Farthest Player Teleport
+farthestBtn.MouseButton1Click:Connect(function()
+	local farthestPlayer = nil
+	local maxDist = -math.huge
+	local localPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
+	if not localPos then return end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (plr.Character.HumanoidRootPart.Position - localPos).Magnitude
+			if dist > maxDist then
+				maxDist = dist
+				farthestPlayer = plr
+			end
+		end
+	end
+	if farthestPlayer then
+		teleportToTarget(farthestPlayer)
 	end
 end)
 
