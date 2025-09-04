@@ -1,24 +1,27 @@
--- ✨ Teleport by Ganesha Exploit (Draggable Floating Icon Version) ✨
--- ✅ Floating icon show/hide (draggable)
--- ✅ Auto update player list
--- ✅ Random Player teleport
--- ✅ Stable, drag-able main UI
+-- ✨ Teleport & Spectate by Ganesha Exploit (Final Stable Full HP Friendly) ✨
+-- ✅ Safe Teleport & Spectate
+-- ✅ All player list auto
+-- ✅ Random teleport
+-- ✅ Floating draggable UI + Touch friendly
+-- ✅ Auto refresh player list
+-- ✅ Stop spectate if target dies/leaves
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- UI Config
-local UI_WIDTH, UI_HEIGHT = 320, 440
+-- Config
+local UI_WIDTH, UI_HEIGHT = 340, 550
 local TELEPORT_COOLDOWN = 1
 local TOGGLE_KEY = Enum.KeyCode.T
-local REFRESH_INTERVAL = 5 -- detik
+local REFRESH_INTERVAL = 5
 
--- Main ScreenGui
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportByGaneshaExploit"
 screenGui.ResetOnSpawn = false
@@ -26,35 +29,35 @@ screenGui.Parent = playerGui
 
 -- Floating icon
 local floatIcon = Instance.new("TextButton")
-floatIcon.Size = UDim2.new(0, 50, 0, 50)
-floatIcon.Position = UDim2.new(1, -60, 1, -60)
+floatIcon.Size = UDim2.new(0,50,0,50)
+floatIcon.Position = UDim2.new(1,-60,1,-60)
 floatIcon.BackgroundColor3 = Color3.fromRGB(200,80,80)
 floatIcon.Text = "TP"
 floatIcon.Font = Enum.Font.GothamBold
 floatIcon.TextSize = 18
 floatIcon.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", floatIcon).CornerRadius = UDim.new(0,12)
 floatIcon.ZIndex = 10
-Instance.new("UICorner", floatIcon).CornerRadius = UDim.new(0, 12)
 floatIcon.Parent = screenGui
 
 -- Main frame
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, UI_WIDTH, 0, UI_HEIGHT)
-main.Position = UDim2.new(0, 20, 0, 80)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Size = UDim2.new(0,UI_WIDTH,0,UI_HEIGHT)
+main.Position = UDim2.new(0,20,0,80)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.Visible = false
 main.Parent = screenGui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", main).Color = Color3.fromRGB(50, 50, 55)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(50,50,55)
 
 -- Title bar
 local titleBar = Instance.new("Frame", main)
-titleBar.Size = UDim2.new(1, 0, 0, 44)
+titleBar.Size = UDim2.new(1,0,0,44)
 titleBar.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.new(1, -20, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
+title.Size = UDim2.new(1,-20,1,0)
+title.Position = UDim2.new(0,10,0,0)
 title.Text = "✨ Teleport by Ganesha Exploit"
 title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
@@ -64,8 +67,8 @@ title.BackgroundTransparency = 1
 
 -- Random Player button
 local randomBtn = Instance.new("TextButton", main)
-randomBtn.Size = UDim2.new(1, -20, 0, 32)
-randomBtn.Position = UDim2.new(0, 10, 0, 60)
+randomBtn.Size = UDim2.new(1,-20,0,32)
+randomBtn.Position = UDim2.new(0,10,0,60)
 randomBtn.Text = "🎲 Random Player"
 randomBtn.Font = Enum.Font.GothamBold
 randomBtn.TextSize = 14
@@ -75,71 +78,116 @@ Instance.new("UICorner", randomBtn).CornerRadius = UDim.new(0,8)
 
 -- Scroll container
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1, -20, 1, -110)
-scroll.Position = UDim2.new(0, 10, 0, 100)
+scroll.Size = UDim2.new(1,-20,1,-120)
+scroll.Position = UDim2.new(0,10,0,100)
 scroll.BackgroundTransparency = 1
-scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.ScrollBarThickness = 6
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0, 6)
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y + 10)
-end)
+layout.Padding = UDim.new(0,6)
 
--- Teleport
+-- Teleport safe
 local lastTeleport = 0
-local function teleportToTarget(target, playerName)
+local function teleportToTarget(plr)
 	if tick() - lastTeleport < TELEPORT_COOLDOWN then return end
 	lastTeleport = tick()
 	pcall(function()
-		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			localPlayer.Character.HumanoidRootPart.CFrame = target.CFrame + Vector3.new(2,0,2)
-			StarterGui:SetCore("SendNotification", {
-				Title = "✨ Teleport by Ganesha Exploit",
-				Text = "Teleported to " .. playerName .. " ✅",
+		if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.CFrame = plr.Character.HumanoidRootPart.CFrame + Vector3.new(2,0,2)
+			StarterGui:SetCore("SendNotification",{
+				Title = "Teleport by Ganesha Exploit",
+				Text = "Teleported to "..plr.Name,
 				Duration = 3
 			})
 		end
 	end)
 end
 
--- Buat tombol player
-local function createButton(plr)
-	local btn = Instance.new("TextButton", scroll)
-	btn.Name = "Btn_"..plr.UserId
-	btn.Size = UDim2.new(1, -4, 0, 40)
-	btn.Text = "Teleport → " .. plr.Name
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.BackgroundColor3 = Color3.fromRGB(70,130,180)
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+-- Spectate safe
+local spectating = false
+local spectateTarget = nil
+local currentCamera = workspace.CurrentCamera
 
-	btn.MouseButton1Click:Connect(function()
-		if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-			teleportToTarget(plr.Character.HumanoidRootPart, plr.Name)
+local function stopSpectate()
+	spectating = false
+	spectateTarget = nil
+	RunService:UnbindFromRenderStep("Spectate")
+	currentCamera.CameraType = Enum.CameraType.Custom
+end
+
+local function spectatePlayer(plr)
+	if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+		spectating = true
+		spectateTarget = plr.Character
+		RunService:BindToRenderStep("Spectate",301,function()
+			if spectating and spectateTarget and spectateTarget:FindFirstChild("HumanoidRootPart") then
+				currentCamera.CFrame = spectateTarget.HumanoidRootPart.CFrame * CFrame.new(0,5,10)
+				currentCamera.CameraType = Enum.CameraType.Scriptable
+			else
+				stopSpectate()
+			end
+		end)
+	end
+end
+
+-- Create Player Button
+local function createPlayerButton(plr)
+	if scroll:FindFirstChild("Player_"..plr.UserId) then return end
+	local container = Instance.new("Frame", scroll)
+	container.Size = UDim2.new(1,-4,0,80)
+	container.BackgroundTransparency = 1
+	container.Name = "Player_"..plr.UserId
+
+	local teleportBtn = Instance.new("TextButton", container)
+	teleportBtn.Size = UDim2.new(1,-4,0,36)
+	teleportBtn.Position = UDim2.new(0,0,0,0)
+	teleportBtn.Text = "Teleport → "..plr.Name
+	teleportBtn.Font = Enum.Font.GothamBold
+	teleportBtn.TextSize = 14
+	teleportBtn.TextColor3 = Color3.new(1,1,1)
+	teleportBtn.BackgroundColor3 = Color3.fromRGB(70,130,180)
+	Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0,10)
+
+	teleportBtn.MouseButton1Click:Connect(function()
+		teleportToTarget(plr)
+	end)
+
+	local spectateBtn = Instance.new("TextButton", container)
+	spectateBtn.Size = UDim2.new(1,-4,0,36)
+	spectateBtn.Position = UDim2.new(0,0,0,44)
+	spectateBtn.Text = "Spectate → "..plr.Name
+	spectateBtn.Font = Enum.Font.GothamBold
+	spectateBtn.TextSize = 14
+	spectateBtn.TextColor3 = Color3.new(1,1,1)
+	spectateBtn.BackgroundColor3 = Color3.fromRGB(200,80,80)
+	Instance.new("UICorner", spectateBtn).CornerRadius = UDim.new(0,10)
+
+	spectateBtn.MouseButton1Click:Connect(function()
+		if spectating and spectateTarget == plr.Character then
+			stopSpectate()
+			spectateBtn.Text = "Spectate → "..plr.Name
+		else
+			spectatePlayer(plr)
+			spectateBtn.Text = "Stop Spectate"
 		end
 	end)
 end
 
--- Refresh list
-local function refreshList()
-	for _, child in ipairs(scroll:GetChildren()) do
-		if child:IsA("TextButton") then
-			child:Destroy()
-		end
-	end
+-- Refresh player list safely
+local function refreshPlayerList()
 	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= localPlayer then
-			createButton(plr)
-		end
+		createPlayerButton(plr)
 	end
 end
 
-refreshList()
-Players.PlayerAdded:Connect(refreshList)
-Players.PlayerRemoving:Connect(refreshList)
+refreshPlayerList()
+Players.PlayerAdded:Connect(refreshPlayerList)
+Players.PlayerRemoving:Connect(function(plr)
+	local btn = scroll:FindFirstChild("Player_"..plr.UserId)
+	if btn then btn:Destroy() end
+	if spectating and spectateTarget == plr.Character then stopSpectate() end
+end)
 
 -- Random teleport
 randomBtn.MouseButton1Click:Connect(function()
@@ -150,67 +198,51 @@ randomBtn.MouseButton1Click:Connect(function()
 		end
 	end
 	if #candidates > 0 then
-		local target = candidates[math.random(1, #candidates)]
-		if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-			teleportToTarget(target.Character.HumanoidRootPart, target.Name)
-		end
+		local target = candidates[math.random(1,#candidates)]
+		teleportToTarget(target)
 	end
 end)
 
--- Toggle main UI
+-- Toggle UI
 local uiVisible = false
 floatIcon.MouseButton1Click:Connect(function()
 	uiVisible = not uiVisible
 	main.Visible = uiVisible
 end)
-ContextActionService:BindAction("ToggleTeleportUI", function(_, state)
-	if state == Enum.UserInputState.Begin then
+ContextActionService:BindAction("ToggleTeleportUI",function(_,state)
+	if state==Enum.UserInputState.Begin then
 		uiVisible = not uiVisible
 		main.Visible = uiVisible
 	end
-end, false, TOGGLE_KEY)
+end,false,TOGGLE_KEY)
 
--- Drag main frame
-local draggingMain, dragStartMain, startPosMain
-titleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		draggingMain = true
-		dragStartMain = input.Position
-		startPosMain = main.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then draggingMain = false end
-		end)
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if draggingMain and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStartMain
-		main.Position = UDim2.new(startPosMain.X.Scale, startPosMain.X.Offset + delta.X, startPosMain.Y.Scale, startPosMain.Y.Offset + delta.Y)
-	end
-end)
+-- Dragging (Mouse + Touch)
+local function makeDraggable(frame)
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState==Enum.UserInputState.End then dragging=false end
+			end)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+		end
+	end)
+end
 
--- Drag floating icon
-local draggingIcon, dragStartIcon, startPosIcon
-floatIcon.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		draggingIcon = true
-		dragStartIcon = input.Position
-		startPosIcon = floatIcon.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then draggingIcon = false end
-		end)
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if draggingIcon and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStartIcon
-		floatIcon.Position = UDim2.new(startPosIcon.X.Scale, startPosIcon.X.Offset + delta.X, startPosIcon.Y.Scale, startPosIcon.Y.Offset + delta.Y)
-	end
-end)
+makeDraggable(main)
+makeDraggable(floatIcon)
 
--- 🔄 Auto Refresh Loop
+-- Auto refresh list loop
 task.spawn(function()
 	while task.wait(REFRESH_INTERVAL) do
-		refreshList()
+		refreshPlayerList()
 	end
 end)
