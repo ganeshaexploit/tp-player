@@ -1,8 +1,7 @@
--- ✨ Teleport by Ganesha Exploit (Auto Scroll) ✨
--- ✅ Auto update list + auto refresh
--- ✅ Search & Random Player
+-- ✨ Teleport by Ganesha Exploit (Simple List) ✨
+-- ✅ Auto update player list
+-- ✅ Random Player teleport
 -- ✅ Roblox Notification
--- ✅ Auto scroll ke player baru join
 -- ✅ Modern draggable UI
 
 local Players = game:GetService("Players")
@@ -14,10 +13,9 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 -- UI Config
-local UI_WIDTH, UI_HEIGHT = 340, 470
+local UI_WIDTH, UI_HEIGHT = 320, 440
 local TELEPORT_COOLDOWN = 1
 local TOGGLE_KEY = Enum.KeyCode.T
-local REFRESH_INTERVAL = 5 -- detik
 
 -- Buat GUI
 local screenGui = Instance.new("ScreenGui")
@@ -33,7 +31,7 @@ main.Parent = screenGui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 Instance.new("UIStroke", main).Color = Color3.fromRGB(50, 50, 55)
 
--- Title
+-- Title bar
 local titleBar = Instance.new("Frame", main)
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundTransparency = 1
@@ -58,21 +56,10 @@ toggleButton.TextColor3 = Color3.new(1,1,1)
 toggleButton.BackgroundColor3 = Color3.fromRGB(200,80,80)
 Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0,8)
 
--- Search
-local searchBox = Instance.new("TextBox", main)
-searchBox.Size = UDim2.new(1, -20, 0, 32)
-searchBox.Position = UDim2.new(0, 10, 0, 50)
-searchBox.PlaceholderText = "🔍 Search player..."
-searchBox.Font = Enum.Font.Gotham
-searchBox.TextSize = 14
-searchBox.TextColor3 = Color3.new(1,1,1)
-searchBox.BackgroundColor3 = Color3.fromRGB(35,35,35)
-Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0,8)
-
--- Random Player
+-- Random Player button
 local randomBtn = Instance.new("TextButton", main)
 randomBtn.Size = UDim2.new(1, -20, 0, 32)
-randomBtn.Position = UDim2.new(0, 10, 0, 90)
+randomBtn.Position = UDim2.new(0, 10, 0, 60)
 randomBtn.Text = "🎲 Random Player"
 randomBtn.Font = Enum.Font.GothamBold
 randomBtn.TextSize = 14
@@ -82,8 +69,8 @@ Instance.new("UICorner", randomBtn).CornerRadius = UDim.new(0,8)
 
 -- Scroll container
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1, -20, 1, -140)
-scroll.Position = UDim2.new(0, 10, 0, 130)
+scroll.Size = UDim2.new(1, -20, 1, -110)
+scroll.Position = UDim2.new(0, 10, 0, 100)
 scroll.BackgroundTransparency = 1
 scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.ScrollBarThickness = 6
@@ -109,63 +96,49 @@ local function teleportToTarget(target, playerName)
 	end
 end
 
--- Update Player List (selalu rebuild total)
-local function updatePlayerList(autoScroll)
-	for _, child in ipairs(scroll:GetChildren()) do
-		if child:IsA("TextButton") then child:Destroy() end
-	end
+-- Buat tombol player
+local function createButton(plr)
+	local btn = Instance.new("TextButton", scroll)
+	btn.Size = UDim2.new(1, -4, 0, 40)
+	btn.Text = "Teleport → " .. plr.Name
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BackgroundColor3 = Color3.fromRGB(70,130,180)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
 
-	local keyword = searchBox.Text:lower()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= localPlayer then
-			if keyword == "" or plr.Name:lower():find(keyword) then
-				local btn = Instance.new("TextButton", scroll)
-				btn.Size = UDim2.new(1, -4, 0, 40)
-				btn.Text = "Teleport → " .. plr.Name
-				btn.Font = Enum.Font.GothamBold
-				btn.TextSize = 14
-				btn.TextColor3 = Color3.new(1,1,1)
-				btn.BackgroundColor3 = Color3.fromRGB(70,130,180)
-				Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
-
-				btn.MouseButton1Click:Connect(function()
-					if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-						teleportToTarget(plr.Character.HumanoidRootPart, plr.Name)
-					end
-				end)
-			end
+	btn.MouseButton1Click:Connect(function()
+		if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			teleportToTarget(plr.Character.HumanoidRootPart, plr.Name)
 		end
-	end
+	end)
 
-	-- Auto scroll ke bawah kalau ada player baru
-	if autoScroll then
-		task.wait(0.1) -- kasih waktu UI update
-		scroll.CanvasPosition = Vector2.new(0, math.huge)
+	plr.AncestryChanged:Connect(function(_, parent)
+		if not parent then btn:Destroy() end
+	end)
+end
+
+-- Update player list awal
+for _, plr in ipairs(Players:GetPlayers()) do
+	if plr ~= localPlayer then
+		createButton(plr)
 	end
 end
 
--- Hooks
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-	updatePlayerList(false)
-end)
-
-Players.PlayerAdded:Connect(function()
-	updatePlayerList(true) -- scroll ke player baru
-end)
-
-Players.PlayerRemoving:Connect(function()
-	updatePlayerList(false)
-end)
-
--- Auto refresh tiap X detik
-task.spawn(function()
-	while true do
-		updatePlayerList(false)
-		task.wait(REFRESH_INTERVAL)
+-- Player join/leave
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= localPlayer then
+		createButton(plr)
 	end
 end)
 
-updatePlayerList(false)
+Players.PlayerRemoving:Connect(function(plr)
+	for _, child in ipairs(scroll:GetChildren()) do
+		if child:IsA("TextButton") and child.Text == "Teleport → " .. plr.Name then
+			child:Destroy()
+		end
+	end
+end)
 
 -- Random teleport
 randomBtn.MouseButton1Click:Connect(function()
