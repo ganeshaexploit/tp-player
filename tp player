@@ -1,9 +1,10 @@
--- ✨ Teleport & Spectate by Ganesha Exploit (Final Stable Full HP Friendly) ✨
+-- ✨ Teleport & Spectate by Ganesha Exploit (Final Full + Manual Refresh) ✨
 -- ✅ Safe Teleport & Spectate
 -- ✅ All player list auto
 -- ✅ Random teleport
 -- ✅ Floating draggable UI + Touch friendly
 -- ✅ Auto refresh player list
+-- ✅ Manual refresh button
 -- ✅ Stop spectate if target dies/leaves
 
 local Players = game:GetService("Players")
@@ -16,7 +17,7 @@ local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 -- Config
-local UI_WIDTH, UI_HEIGHT = 340, 550
+local UI_WIDTH, UI_HEIGHT = 340, 600
 local TELEPORT_COOLDOWN = 1
 local TOGGLE_KEY = Enum.KeyCode.T
 local REFRESH_INTERVAL = 5
@@ -76,10 +77,21 @@ randomBtn.TextColor3 = Color3.new(1,1,1)
 randomBtn.BackgroundColor3 = Color3.fromRGB(70,130,180)
 Instance.new("UICorner", randomBtn).CornerRadius = UDim.new(0,8)
 
+-- Manual Refresh button
+local refreshBtn = Instance.new("TextButton", main)
+refreshBtn.Size = UDim2.new(1,-20,0,32)
+refreshBtn.Position = UDim2.new(0,10,0,100)
+refreshBtn.Text = "🔄 Refresh Player List"
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.TextSize = 14
+refreshBtn.TextColor3 = Color3.new(1,1,1)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(120,180,70)
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,8)
+
 -- Scroll container
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1,-20,1,-120)
-scroll.Position = UDim2.new(0,10,0,100)
+scroll.Size = UDim2.new(1,-20,1,-160)
+scroll.Position = UDim2.new(0,10,0,140)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -181,12 +193,29 @@ local function refreshPlayerList()
 	end
 end
 
+-- Manual Refresh button
+refreshBtn.MouseButton1Click:Connect(function()
+	refreshPlayerList()
+	StarterGui:SetCore("SendNotification",{
+		Title = "Teleport by Ganesha Exploit",
+		Text = "Player list refreshed ✅",
+		Duration = 2
+	})
+end)
+
+-- Initial refresh & auto refresh loop
 refreshPlayerList()
 Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(function(plr)
 	local btn = scroll:FindFirstChild("Player_"..plr.UserId)
 	if btn then btn:Destroy() end
 	if spectating and spectateTarget == plr.Character then stopSpectate() end
+end)
+
+task.spawn(function()
+	while task.wait(REFRESH_INTERVAL) do
+		refreshPlayerList()
+	end
 end)
 
 -- Random teleport
@@ -239,10 +268,3 @@ end
 
 makeDraggable(main)
 makeDraggable(floatIcon)
-
--- Auto refresh list loop
-task.spawn(function()
-	while task.wait(REFRESH_INTERVAL) do
-		refreshPlayerList()
-	end
-end)
